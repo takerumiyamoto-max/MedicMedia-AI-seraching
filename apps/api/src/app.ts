@@ -1,28 +1,20 @@
-import Fastify, { type FastifyInstance } from 'fastify';
-import { healthRoute } from './routes/health.js';
-import type { Env } from './env.js';
+import Fastify from "fastify";
+import { type Env, loadEnv } from "./env";
 
-export function buildApp(env: Env): FastifyInstance {
+import healthRoutes from "./routes/health";
+import pdfsRoutes from "./routes/pdfs";
+
+export function buildApp(env: Env = loadEnv()) {
   const app = Fastify({
-    logger:
-      env.NODE_ENV === 'development'
-        ? {
-            level: env.LOG_LEVEL,
-            transport: {
-              target: 'pino-pretty',
-              options: { translateTime: 'SYS:standard', singleLine: true }
-            }
-          }
-        : { level: env.LOG_LEVEL }
+    logger: { level: env.LOG_LEVEL },
   });
 
-  // ルート登録
-  app.register(healthRoute);
+  app.decorate("env", env);
 
-  // 404 をJSONで返す（フロントと合わせやすい）
-  app.setNotFoundHandler(async (_req, reply) => {
-    reply.code(404).send({ error: 'Not Found' });
-  });
+  app.register(healthRoutes);
+  app.register(pdfsRoutes);
 
   return app;
 }
+
+export default buildApp();

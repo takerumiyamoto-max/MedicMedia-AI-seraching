@@ -1,13 +1,7 @@
-import { loadEnv } from './env.js';
-import { buildApp } from './app.js';
+import app from "./app";
+import { env } from "./env";
 
-const env = loadEnv();
-const app = buildApp(env);
-
-try {
-  await app.listen({ port: env.PORT, host: env.HOST });
-  app.log.info(`API server listening on http://${env.HOST}:${env.PORT}`);
-} catch (err) {
+app.listen({ port: env.PORT, host: env.HOST }).catch((err) => {
   app.log.error(err);
   process.exit(1);
-}
+});
