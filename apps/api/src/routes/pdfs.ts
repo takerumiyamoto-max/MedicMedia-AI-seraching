@@ -7,6 +7,7 @@ import type { Env } from "../env";
 import { ensureUploadDir, generatePdfId, getPdfAbsolutePath } from "../services/storage";
 import { appendMeta, getMetaById } from "../services/metadata";
 import { extractPdfToPages, readExtracted } from "../services/extract";
+import { buildChunksForPdf, readChunks } from "../services/chunk";
 
 const pdfsRoutes: FastifyPluginAsync = async (app) => {
   // app.decorate("env", env) している想定（buildAppで）
@@ -86,6 +87,36 @@ const pdfsRoutes: FastifyPluginAsync = async (app) => {
 
     return reply.send(extracted);
     });
+
+  // POST /pdfs/:pdf_id/chunk
+  app.post("/pdfs/:pdf_id/chunk", async (req, reply) => {
+    const { pdf_id } = req.params as { pdf_id: string };
+    const body = (req.body ?? {}) as { chunk_size?: number; overlap?: number };
+
+    // 抽出済みでないとchunk化できない
+    const chunked = await buildChunksForPdf(uploadDirAbs, pdf_id, {
+        chunk_size: body.chunk_size,
+        overlap: body.overlap,
+    });
+
+    if (!chunked) return reply.code(409).send({ error: "not extracted yet" });
+
+    return reply.send({
+        pdf_id,
+        chunk_size: chunked.chunk_size,
+        overlap: chunked.overlap,
+        chunk_count: chunked.chunks.length,
+        created_at: chunked.created_at,
+    });
+    });
+
+    // GET /pdfs/:pdf_id/chunks（確認用）
+  app.get("/pdfs/:pdf_id/chunks", async (req, reply) => {
+    const { pdf_id } = req.params as { pdf_id: string };
+    const chunked = await readChunks(uploadDirAbs, pdf_id);
+    if (!chunked) return reply.code(404).send({ error: "not chunked" });
+    return reply.send(chunked);
+});
 };
 
 
