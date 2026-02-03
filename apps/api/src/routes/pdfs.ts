@@ -3,10 +3,10 @@ import multipart from "@fastify/multipart";
 import path from "node:path";
 import fs from "node:fs";
 import { pipeline } from "node:stream/promises";
-
 import type { Env } from "../env";
 import { ensureUploadDir, generatePdfId, getPdfAbsolutePath } from "../services/storage";
 import { appendMeta, getMetaById } from "../services/metadata";
+import { extractPdfToPages, readExtracted } from "../services/extract";
 
 const pdfsRoutes: FastifyPluginAsync = async (app) => {
   // app.decorate("env", env) している想定（buildAppで）
@@ -59,6 +59,34 @@ const pdfsRoutes: FastifyPluginAsync = async (app) => {
     if (!meta) return reply.code(404).send({ error: "not found" });
     return reply.send(meta);
   });
+
+  // POST /pdfs/:pdf_id/extract
+  app.post("/pdfs/:pdf_id/extract", async (req, reply) => {
+    const { pdf_id } = req.params as { pdf_id: string };
+
+    const meta = await getMetaById(uploadDirAbs, pdf_id);
+    if (!meta) return reply.code(404).send({ error: "not found" });
+
+    const pdfAbsPath = path.resolve(process.cwd(), meta.stored_relpath);
+
+    try {
+        const result = await extractPdfToPages(uploadDirAbs, pdf_id, pdfAbsPath);
+        return reply.send(result);
+    } catch (e: any) {
+        return reply.code(500).send({ error: String(e?.message ?? e) });
+    }
+    });
+
+  // GET /pdfs/:pdf_id/pages
+  app.get("/pdfs/:pdf_id/pages", async (req, reply) => {
+    const { pdf_id } = req.params as { pdf_id: string };
+
+    const extracted = await readExtracted(uploadDirAbs, pdf_id);
+    if (!extracted) return reply.code(404).send({ error: "not extracted" });
+
+    return reply.send(extracted);
+    });
 };
+
 
 export default pdfsRoutes;
