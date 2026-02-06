@@ -1,4 +1,5 @@
 import Fastify from "fastify";
+import routes from "./routes";
 import { type Env, loadEnv } from "./env";
 import healthRoutes from "./routes/health";
 import pdfsRoutes from "./routes/pdfs";
@@ -14,6 +15,7 @@ export function buildApp(env: Env = loadEnv()) {
   app.register(healthRoutes);
   app.register(pdfsRoutes);
   app.register(searchRoutes);
+  app.register(routes);
 
   return app;
 }

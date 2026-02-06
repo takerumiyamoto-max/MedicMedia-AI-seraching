@@ -1,10 +1,12 @@
-import { Router } from "express";
-import pdfs from "./pdfs";
-// import health from "./health"; // あるなら
+// apps/api/src/routes/index.ts
+import type { FastifyInstance } from "fastify";
 
-const router = Router();
+import healthRoutes from "./health";
+import pdfRoutes from "./pdfs";
+import searchRoutes from "./search";
 
-// router.use("/health", health);
-router.use("/pdfs", pdfs);
-
-export default router;
+export default async function routes(app: FastifyInstance) {
+  await app.register(healthRoutes);
+  await app.register(pdfRoutes);
+  await app.register(searchRoutes);
+}
