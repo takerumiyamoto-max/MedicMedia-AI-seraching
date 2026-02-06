@@ -1,4 +1,5 @@
 import { readChunks, type ChunkedPdf, type MaterialChunk } from "./chunk";
+import { ApiError } from "./api_error";
 
 export type MaterialHit = {
   chunk_id: string;
@@ -51,7 +52,6 @@ function makeSnippet(text: string, queryTokens: string[], maxLen = 180) {
 }
 
 function scoreChunk(chunk: MaterialChunk, tokens: string[]) {
-  // MVP: 出現回数の合計（長文優遇を少し抑えるためにlogでも良いがまずは単純に）
   let score = 0;
   for (const tok of tokens) score += countOccurrences(chunk.text, tok);
   return score;
@@ -62,9 +62,18 @@ export async function searchMaterial(
   pdf_id: string,
   query: string,
   topK = 5
-): Promise<{ chunked: ChunkedPdf; hits: MaterialHit[] } | null> {
+): Promise<{ chunked: ChunkedPdf; hits: MaterialHit[] }> {
   const chunked = await readChunks(uploadDirAbs, pdf_id);
-  if (!chunked) return null;
+
+  // ここが今回の要：nullで返さず、エラーコードで投げる
+  if (!chunked) {
+    throw new ApiError(
+      "NOT_CHUNKED",
+      "This pdf is not chunked yet.",
+      409,
+      { pdf_id }
+    );
+  }
 
   const tokens = tokenize(query);
   if (tokens.length === 0) {
