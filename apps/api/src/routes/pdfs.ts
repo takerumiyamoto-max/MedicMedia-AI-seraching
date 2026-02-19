@@ -7,6 +7,7 @@ import type { Env } from "../env";
 import { ensureUploadDir, generatePdfId, getPdfAbsolutePath } from "../services/storage";
 import { appendMeta, getMetaById } from "../services/metadata";
 import { extractPdfToPages, readExtracted } from "../services/extract";
+import { extractPdfToText, readExtractedText } from "../services/extract_text";
 import { buildChunksForPdf, readChunks } from "../services/chunk";
 
 const pdfsRoutes: FastifyPluginAsync = async (app) => {
@@ -76,6 +77,32 @@ const pdfsRoutes: FastifyPluginAsync = async (app) => {
     } catch (e: any) {
         return reply.code(500).send({ error: String(e?.message ?? e) });
     }
+    });
+    // POST /pdfs/:pdf_id/extract_text
+  app.post("/pdfs/:pdf_id/extract_text", async (req, reply) => {
+    const { pdf_id } = req.params as { pdf_id: string };
+
+    const meta = await getMetaById(uploadDirAbs, pdf_id);
+    if (!meta) return reply.code(404).send({ error: "not found" });
+
+    const pdfAbsPath = path.resolve(process.cwd(), meta.stored_relpath);
+
+    try {
+      const result = await extractPdfToText(uploadDirAbs, pdf_id, pdfAbsPath);
+      return reply.send(result);
+    } catch (e: any) {
+      return reply.code(500).send({ error: String(e?.message ?? e) });
+    }
+    });
+
+  // GET /pdfs/:pdf_id/text（確認用）
+  app.get("/pdfs/:pdf_id/text", async (req, reply) => {
+    const { pdf_id } = req.params as { pdf_id: string };
+
+    const extracted = await readExtractedText(uploadDirAbs, pdf_id);
+    if (!extracted) return reply.code(404).send({ error: "not extracted_text" });
+
+    return reply.send(extracted);
     });
 
   // GET /pdfs/:pdf_id/pages
