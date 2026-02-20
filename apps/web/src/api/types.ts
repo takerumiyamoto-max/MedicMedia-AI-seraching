@@ -43,3 +43,29 @@ export type SearchMaterialRequest = {
   query: string;
   top_k?: number;
 };
+
+// apps/web/src/api/types.ts（末尾に追加）
+
+export type ApiErrorPayload = {
+  ok: false;
+  request_id: string;
+  error: { code: string; message: string; details?: Record<string, unknown> };
+};
+
+export type AutoSearchHit = {
+  question_id: string;
+  title: string;
+  snippet: string;
+  score: number;
+  meta?: Record<string, unknown>;
+};
+
+export type SearchMaterialAutoResponse =
+  | {
+      ok: true;
+      request_id: string;
+      pdf_id: string;
+      generated: { query: string; keywords: string[] };
+      hits: AutoSearchHit[];
+    }
+  | ApiErrorPayload;
