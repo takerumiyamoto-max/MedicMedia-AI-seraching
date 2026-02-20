@@ -9,9 +9,13 @@ const EnvSchema = z.object({
     .enum(["fatal", "error", "warn", "info", "debug", "trace", "silent"])
     .default("info"),
 
-  // ✅ 追加（PDFアップロード用）
+  // PDF upload
   UPLOAD_DIR: z.string().default("uploads"),
   MAX_UPLOAD_MB: z.coerce.number().int().positive().default(20),
+
+  // PR05: Gemini & Questions CSV
+  GEMINI_API_KEY: z.string().optional(), // まず optional でOK（本実装時に min(1) にしても良い）
+  QUESTIONS_CSV_PATH: z.string().default("data/questions.csv"),
 });
 
 export type Env = z.infer<typeof EnvSchema>;
@@ -26,5 +30,4 @@ export function loadEnv(): Env {
   return parsed.data;
 }
 
-// ✅ アプリ全体でこれを使う
 export const env: Env = loadEnv();
